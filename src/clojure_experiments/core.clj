@@ -4,13 +4,15 @@
   "A directed graph, not necessarily finite or locally finite."
   (vertices [G])
   (pred [G])
-  (succ [G]))
+  (succ [G])
+  (no-neighbors [G]))
 
 (deftype Graph [verts back forw]
   IGraph
   (vertices [G] verts)
   (pred [G] back)
-  (succ [G] forw))
+  (succ [G] forw)
+  (no-neighbors [G] #{}))
 
 (def empty-graph (Graph. #{} {} {}))
 
@@ -19,11 +21,11 @@
         G
         true
         (Graph. (conj (vertices G) v)
-                (conj (pred G) [v #{}])
-                (conj (succ G) [v #{}]))))
+                (conj (pred G) [v (no-neighbors G)])
+                (conj (succ G) [v (no-neighbors G)]))))
 
 (defn with-edge [G e]
-  (let [[v w] e]
-    (Graph. (reduce conj (vertices G) e)
-            (conj (pred G) [w (conj ((pred G) w) v)])
-            (conj (succ G) [v (conj ((succ G) v) w)]))))
+  (let [[v w] e G1 (reduce with-vertex G e)]
+    (Graph. (reduce conj (vertices G1) e)
+            (conj (pred G1) [w (conj ((pred G1) w) v)])
+            (conj (succ G1) [v (conj ((succ G1) v) w)]))))
