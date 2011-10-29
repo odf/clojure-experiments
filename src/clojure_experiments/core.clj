@@ -7,7 +7,7 @@
   (succ [G])
   (no-neighbors [G]))
 
-(deftype Graph [verts back forw]
+(defrecord Graph [verts back forw]
   IGraph
   (vertices [G] verts)
   (pred [G] back)
