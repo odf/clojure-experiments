@@ -1,5 +1,13 @@
 (ns clojure-experiments.core)
 
+(defn filter-set [f s] (reduce disj s (filter #(not (f %)) s)))
+
+(defn map-values [f m] (reduce (fn [m [k v]] (assoc m k v)) m
+                               (->> m
+                                    (filter (fn [[k v]] (not= v (f v))))
+                                    (map (fn [[k v]] (vector k (f v)))))))
+
+
 (defprotocol IGraph
   "A simple directed graph, not necessarily finite or locally finite."
   (vertices [G])
@@ -13,7 +21,7 @@
   (succ [G] forw))
 
 (defn edges [G]
-  (mapcat (fn [[v adj]] (map (partial vector v) adj))
+  (mapcat (fn [[v adj]] (map #(vector v %) adj))
           (succ G)))
 
 (defn isolated? [G v] (and ((vertices G) v)
@@ -37,10 +45,7 @@
 
 (defn without-vertex [G v]
   (cond ((vertices G) v)
-        (let [not-v (fn [u] (not (= u v)))
-              purge-v-from-set (fn [s] (into #{} (filter not-v s)))
-              purge-v-from-map (fn [m] (into {} (map (fn [[w adj]]
-                                                       [w (purge-v-from-set adj)]) m)))]
+        (let [purge-v-from-map (partial map-values (partial filter-set #(not= % v)))]
           (Graph. (disj (vertices G) v)
                   (dissoc (purge-v-from-map (pred G)) v)
                   (dissoc (purge-v-from-map (succ G)) v)))
