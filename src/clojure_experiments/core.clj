@@ -32,6 +32,21 @@
 
 (defn with-vertices [G verts] (reduce with-vertex G verts))
 
+
+(defn without-vertex [G v]
+  (cond ((vertices G) v)
+        (let [not-v (fn [u] (not (= u v)))
+              purge-v-from-set (fn [s] (into #{} (filter not-v s)))
+              purge-v-from-map (fn [m] (into {} (map (fn [[w adj]]
+                                                       [w (purge-v-from-set adj)]) m)))]
+          (Graph. (disj (vertices G) v)
+                  (dissoc (purge-v-from-map (pred G)) v)
+                  (dissoc (purge-v-from-map (succ G)) v)))
+        true
+        G))
+
+(defn without-vertices [G verts] (reduce without-vertex G verts))
+
 (defn with-edge [G [v w]]
   (let [G1 (with-vertices G [v w])]
     (Graph. (vertices G1)
@@ -46,15 +61,3 @@
           (conj (succ G) [v (disj ((succ G) v) w)])))
 
 (defn without-edges [G edges] (reduce without-edge G edges))
-
-(defn without-vertex [G v]
-  (cond (isolated? G v)
-        (Graph. (disj (vertices G) v)
-                (pred G)
-                (succ G))
-        ((vertices G) v)
-        (let [incident-to-v (fn [[u w]] (or (= u v) (= v w)))
-              obsolete (filter incident-to-v (edges G))]
-          (without-vertex (without-edges G obsolete) v))
-        true
-        G))
