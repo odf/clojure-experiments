@@ -53,8 +53,8 @@
                 (pred G)
                 (succ G))
         ((vertices G) v)
-        (without-vertex
-         (without-edges
-          G (filter (fn ))))
-        ))
-
+        (let [incident-to-v (fn [[u w]] (or (= u v) (= v w)))
+              obsolete (filter incident-to-v (edges G))]
+          (without-vertex (without-edges G obsolete) v))
+        true
+        G))
