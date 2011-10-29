@@ -20,6 +20,9 @@
                            (empty? ((pred G) v))
                            (empty? ((succ G) v))))
 
+(defn has-edge? [G v w] (and ((vertices G) v)
+                             (((succ G) v) w)))
+
 (def empty-graph (Graph. #{} {} {}))
 
 (defn with-vertex [G v]
@@ -31,7 +34,6 @@
                 (conj (succ G) [v #{}]))))
 
 (defn with-vertices [G verts] (reduce with-vertex G verts))
-
 
 (defn without-vertex [G v]
   (cond ((vertices G) v)
@@ -48,16 +50,22 @@
 (defn without-vertices [G verts] (reduce without-vertex G verts))
 
 (defn with-edge [G [v w]]
-  (let [G1 (with-vertices G [v w])]
-    (Graph. (vertices G1)
-            (conj (pred G1) [w (conj ((pred G1) w) v)])
-            (conj (succ G1) [v (conj ((succ G1) v) w)]))))
+  (cond (has-edge? G v w)
+        G
+        true
+        (let [G1 (with-vertices G [v w])]
+          (Graph. (vertices G1)
+                  (conj (pred G1) [w (conj ((pred G1) w) v)])
+                  (conj (succ G1) [v (conj ((succ G1) v) w)])))))
 
 (defn with-edges [G edges] (reduce with-edge G edges))
 
 (defn without-edge [G [v w]]
-  (Graph. (vertices G)
+  (cond (has-edge? G v w)
+        (Graph. (vertices G)
           (conj (pred G) [w (disj ((pred G) w) v)])
-          (conj (succ G) [v (disj ((succ G) v) w)])))
+          (conj (succ G) [v (disj ((succ G) v) w)]))
+        true
+        G))
 
 (defn without-edges [G edges] (reduce without-edge G edges))
