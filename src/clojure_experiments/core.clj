@@ -35,50 +35,48 @@
 
 (def empty-graph (Graph. #{} {} {}))
 
-(defn with-vertices
-  ([G] G)
-  ([G v]
-     (when G
+(defn with-vertices [G & vs]
+  (when G
+    (reduce
+     (fn [G v]
        (if ((vertices G) v)
          G
          (Graph. (conj (vertices G) v)
                  (conj (pred G) [v #{}])
-                 (conj (succ G) [v #{}])))))
-  ([G v & vs]
-     (when G
-       (let [G1 (with-vertices G v)]
-         (if vs
-           (recur G1 (first vs) (next vs))
-           G1)))))
+                 (conj (succ G) [v #{}]))))
+     G vs)))
 
-(defn without-vertex [G v]
-  (cond ((vertices G) v)
+(defn without-vertices [G & vs]
+  (when G
+    (reduce
+     (fn [G v]
+       (if ((vertices G) v)
         (let [purge-v-from-map (partial map-values (partial filter-set #(not= % v)))]
           (Graph. (disj (vertices G) v)
                   (dissoc (purge-v-from-map (pred G)) v)
                   (dissoc (purge-v-from-map (succ G)) v)))
-        true
         G))
+     G vs)))
 
-(defn without-vertices [G verts] (reduce without-vertex G verts))
+(defn with-edges [G & vs]
+  (when G
+    (reduce
+     (fn [G [v w]]
+       (if (has-edge? G v w)
+         G
+         (let [G1 (with-vertices G v w)]
+           (Graph. (vertices G1)
+                   (conj (pred G1) [w (conj ((pred G1) w) v)])
+                   (conj (succ G1) [v (conj ((succ G1) v) w)])))))
+     G (partition 2 vs))))
 
-(defn with-edge [G [v w]]
-  (cond (has-edge? G v w)
-        G
-        true
-        (let [G1 (with-vertices G v w)]
-          (Graph. (vertices G1)
-                  (conj (pred G1) [w (conj ((pred G1) w) v)])
-                  (conj (succ G1) [v (conj ((succ G1) v) w)])))))
-
-(defn with-edges [G edges] (reduce with-edge G edges))
-
-(defn without-edge [G [v w]]
-  (cond (has-edge? G v w)
-        (Graph. (vertices G)
-          (conj (pred G) [w (disj ((pred G) w) v)])
-          (conj (succ G) [v (disj ((succ G) v) w)]))
-        true
-        G))
-
-(defn without-edges [G edges] (reduce without-edge G edges))
+(defn without-edges [G & vs]
+  (when G
+    (reduce
+     (fn [G [v w]]
+       (if (has-edge? G v w)
+         (Graph. (vertices G)
+                 (conj (pred G) [w (disj ((pred G) w) v)])
+                 (conj (succ G) [v (disj ((succ G) v) w)]))
+         G))
+     G (partition 2 vs))))
