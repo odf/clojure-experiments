@@ -91,3 +91,17 @@
                  (conj (succ G) [v (disj ((succ G) v) w)]))
          G))
      G (partition 2 vs))))
+
+(defn dfs-visit [adj [order, parent] [u, v]]
+  (if (parent v)
+    [order, parent]
+    (let [edges
+          (map vector (repeat v) (adj v))
+          [new-order, new-parent]
+          (reduce (partial dfs-visit adj) [order (assoc parent v u)] edges)]
+      [(cons v new-order), new-parent])))
+
+(defn dfs [sources adj]
+  "Performs a depth first traversal of the directed graph determined by the
+  list 'sources' of source nodes and the adjacency function 'adj'."
+  (reduce (partial dfs-visit adj) [nil {}] (map vector sources sources)))
