@@ -9,7 +9,7 @@
 
 
 (defprotocol IGraph
-  "A simple directed graph, not necessarily finite or locally finite."
+  "A simple directed graph."
   (vertices [G])
   (pred [G])
   (succ [G]))
@@ -19,6 +19,8 @@
   (vertices [G] verts)
   (pred [G] back)
   (succ [G] forw))
+
+(defn graph [& vs] (apply with-edges (cons (Graph. #{} {} {}) vs)))
 
 (defn edges [G]
   (mapcat (fn [[v adj]] (map vector (repeat v) adj))
@@ -32,8 +34,6 @@
 (defn has-edge? [G v w]
   (and ((vertices G) v)
        (((succ G) v) w)))
-
-(def empty-graph (Graph. #{} {} {}))
 
 (defn with-vertices [G & vs]
   (when G
@@ -62,7 +62,7 @@
   (when G
     (reduce
      (fn [G [v w]]
-       (if (has-edge? G v w)
+       (if (or (has-edge? G v w) (= v w))
          G
          (let [G1 (with-vertices G v w)]
            (Graph. (vertices G1)
