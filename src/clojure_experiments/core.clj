@@ -35,15 +35,21 @@
 
 (def empty-graph (Graph. #{} {} {}))
 
-(defn with-vertex [G v]
-  (cond ((vertices G) v)
-        G
-        true
-        (Graph. (conj (vertices G) v)
-                (conj (pred G) [v #{}])
-                (conj (succ G) [v #{}]))))
-
-(defn with-vertices [G verts] (reduce with-vertex G verts))
+(defn with-vertices
+  ([G] G)
+  ([G v]
+     (when G
+       (if ((vertices G) v)
+         G
+         (Graph. (conj (vertices G) v)
+                 (conj (pred G) [v #{}])
+                 (conj (succ G) [v #{}])))))
+  ([G v & vs]
+     (when G
+       (let [G1 (with-vertices G v)]
+         (if vs
+           (recur G1 (first vs) (next vs))
+           G1)))))
 
 (defn without-vertex [G v]
   (cond ((vertices G) v)
@@ -60,7 +66,7 @@
   (cond (has-edge? G v w)
         G
         true
-        (let [G1 (with-vertices G [v w])]
+        (let [G1 (with-vertices G v w)]
           (Graph. (vertices G1)
                   (conj (pred G1) [w (conj ((pred G1) w) v)])
                   (conj (succ G1) [v (conj ((succ G1) v) w)])))))
