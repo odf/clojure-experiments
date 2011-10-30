@@ -2,10 +2,10 @@
 
 (defn filter-set [f s] (reduce disj s (filter #(not (f %)) s)))
 
-(defn map-values [f m] (reduce (fn [m [k v]] (assoc m k v)) m
-                               (->> m
-                                    (filter (fn [[k v]] (not= v (f v))))
-                                    (map (fn [[k v]] (vector k (f v)))))))
+(defn map-values [f m]
+  (reduce (fn [m [k v]] (let [fv (f v)]
+                          (cond (= v fv) m true (assoc m k fv))))
+          m m))
 
 
 (defprotocol IGraph
@@ -21,15 +21,17 @@
   (succ [G] forw))
 
 (defn edges [G]
-  (mapcat (fn [[v adj]] (map #(vector v %) adj))
+  (mapcat (fn [[v adj]] (map vector (repeat v) adj))
           (succ G)))
 
-(defn isolated? [G v] (and ((vertices G) v)
-                           (empty? ((pred G) v))
-                           (empty? ((succ G) v))))
+(defn isolated? [G v]
+  (and ((vertices G) v)
+       (empty? ((pred G) v))
+       (empty? ((succ G) v))))
 
-(defn has-edge? [G v w] (and ((vertices G) v)
-                             (((succ G) v) w)))
+(defn has-edge? [G v w]
+  (and ((vertices G) v)
+       (((succ G) v) w)))
 
 (def empty-graph (Graph. #{} {} {}))
 
