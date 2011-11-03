@@ -1,5 +1,8 @@
 (ns clojure-experiments.core)
 
+
+;; Variations of set and map that don't create new collections.
+
 (defn filter-set [f s] (reduce disj s (filter #(not (f %)) s)))
 
 (defn map-values [f m]
@@ -7,6 +10,8 @@
                           (cond (= v fv) m true (assoc m k fv))))
           m m))
 
+
+;; An implementation of directed graphs as a persistent data structure.
 
 (defprotocol IGraph
   "A simple directed graph."
@@ -20,8 +25,6 @@
   (pred [G] back)
   (succ [G] forw))
 
-
-(defn graph [& vs] (apply with-edges (cons (Graph. #{} {} {}) vs)))
 
 (defn vertex? [G v] (and ((vertices G) v) true))
 
@@ -92,16 +95,39 @@
          G))
      G (partition 2 vs))))
 
-(defn dfs-visit [adj [order, parent] [u, v]]
-  (if (parent v)
-    [order, parent]
-    (let [edges
-          (map vector (repeat v) (adj v))
-          [new-order, new-parent]
-          (reduce (partial dfs-visit adj) [order (assoc parent v u)] edges)]
-      [(cons v new-order), new-parent])))
+(defn graph [& vs] (apply with-edges (cons (Graph. #{} {} {}) vs)))
 
-(defn dfs [sources adj]
+
+;; A generic, eager depth-first-search implementation.
+
+(defn dfs-visit [adj collected [u, v]]
+  (let [{order :order parent :parent} collected]
+    (if (parent v)
+      collected
+      (let [edges
+            (map vector (repeat v) (adj v))
+            out
+            (reduce (partial dfs-visit adj) (assoc-in collected [:parent v] u) edges)]
+        (assoc out :order (cons v (:order out)))))))
+
+(defn dfs [adj & sources]
   "Performs a depth first traversal of the directed graph determined by the
   list 'sources' of source nodes and the adjacency function 'adj'."
-  (reduce (partial dfs-visit adj) [nil {}] (map vector sources sources)))
+  (reduce (partial dfs-visit adj) {:order nil :parent {}} (map vector sources sources)))
+
+
+;; Lazy sequence experiments.
+
+(defn tails [s]
+  "The sequence of sequences starting at each position in the given sequence 's'."
+  (lazy-seq (when-let [s (seq s)]
+              (cons s (tails (rest s))))))
+
+(defn reduce-true [f val coll]
+  "A short-circuiting version of 'reduce'. Stops evaluation when the
+  accumulated value is logically false."
+  (let [v (->> (reductions f val coll)
+               (tails)
+               (take-while first)
+               (last))]
+    (if (empty? (rest v)) (first v))))
