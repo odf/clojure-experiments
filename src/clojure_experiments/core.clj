@@ -101,7 +101,7 @@
 ;; A generic, eager depth-first-search implementation.
 
 (defn dfs-visit [adj collected [u, v]]
-  (let [{order :order parent :parent} collected]
+  (let [{:keys [order parent]} collected]
     (if (parent v)
       collected
       (let [edges
