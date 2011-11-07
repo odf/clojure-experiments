@@ -119,18 +119,12 @@
 ;; Generic graph traversal.
 
 (defn traversal [adj seen todo]
-  (if (empty? todo)
-    nil
-    (let [node (first todo)
-          todo (pop todo)
-          seen (conj seen node)
-          [seen todo] (reduce (fn [[seen todo] v]
-                                (if (seen v)
-                                  [seen todo]
-                                  [(conj seen v) (conj todo v)]))
-                       [seen todo]
-                       (adj node))]
-      (lazy-seq (cons node (traversal adj seen todo))))))
+  (if-let [node (first todo)]
+    (let [neighbors (adj node)
+          todo (into (pop todo) (filter (complement seen) neighbors))
+          seen (into (conj seen node) neighbors)]
+      (lazy-seq (cons node (traversal adj seen todo))))
+    nil))
 
 
 ;; Lazy sequence experiments.
