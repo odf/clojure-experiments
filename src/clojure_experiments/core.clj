@@ -116,6 +116,23 @@
   (reduce (partial dfs-visit adj) {:order nil :parent {}} (map vector sources sources)))
 
 
+;; Generic graph traversal.
+
+(defn traversal [adj seen todo]
+  (if (empty? todo)
+    nil
+    (let [node (first todo)
+          todo (pop todo)
+          seen (conj seen node)
+          [seen todo] (reduce (fn [[seen todo] v]
+                                (if (seen v)
+                                  [seen todo]
+                                  [(conj seen v) (conj todo v)]))
+                       [seen todo]
+                       (adj node))]
+      (lazy-seq (cons node (traversal adj seen todo))))))
+
+
 ;; Lazy sequence experiments.
 
 (defn tails [s]
