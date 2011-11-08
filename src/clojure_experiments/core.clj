@@ -100,41 +100,23 @@
 
 ;; Generic graph traversal.
 
-(defprotocol IBag
-  (push [bag val])
-  (head [bag])
-  (tail [bag]))
-
-(extend-protocol IBag
-  clojure.lang.PersistentList
-  (push [bag val] (conj bag val))
-  (head [bag] (first bag))
-  (tail [bag] (rest bag))
-  clojure.lang.PersistentList$EmptyList
-  (push [bag val] (conj bag val))
-  (head [bag] nil)
-  (tail [bag] bag)
-  clojure.lang.PersistentQueue
-  (push [bag val] (conj bag val))
-  (head [bag] (first bag))
-  (tail [bag] (pop bag)))
-
-(defn traversal [adj seen todo]
+(defn traversal [adj seen todo push head tail]
   (when-let [node (head todo)]
     (let [neighbors (adj node)
           todo (reduce push (tail todo) (filter (complement seen) neighbors))
           seen (into (conj seen node) neighbors)]
-      (lazy-seq (cons node (traversal adj seen todo))))))
+      (lazy-seq (cons node (traversal adj seen todo push head tail))))))
 
 (defn dfs [adj & sources]
   "Performs a lazy depth first traversal of the directed graph determined by
   the list 'sources' of source nodes and the adjacency function 'adj'."
-  (traversal adj #{} (into '() sources)))
+  (traversal adj #{} (into '() sources) conj first rest))
 
 (defn bfs [adj & sources]
   "Performs a lazy breadth first traversal of the directed graph determined by
   the list 'sources' of source nodes and the adjacency function 'adj'."
-  (traversal adj #{} (into clojure.lang.PersistentQueue/EMPTY sources)))
+  (traversal adj #{} (into clojure.lang.PersistentQueue/EMPTY sources)
+             conj first pop))
 
 
 ;; Lazy sequence experiments.
