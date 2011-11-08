@@ -98,24 +98,6 @@
 (defn graph [& vs] (apply with-edges (cons (Graph. #{} {} {}) vs)))
 
 
-;; A generic, eager depth-first-search implementation.
-
-(defn dfs-visit [adj collected [u, v]]
-  (let [{:keys [order parent]} collected]
-    (if (parent v)
-      collected
-      (let [edges
-            (map vector (repeat v) (adj v))
-            out
-            (reduce (partial dfs-visit adj) (assoc-in collected [:parent v] u) edges)]
-        (assoc out :order (cons v (:order out)))))))
-
-(defn dfs [adj & sources]
-  "Performs a depth first traversal of the directed graph determined by the
-  list 'sources' of source nodes and the adjacency function 'adj'."
-  (reduce (partial dfs-visit adj) {:order nil :parent {}} (map vector sources sources)))
-
-
 ;; Generic graph traversal.
 
 (defprotocol IBag
@@ -144,6 +126,16 @@
           seen (into (conj seen node) neighbors)]
       (lazy-seq (cons node (traversal adj seen todo))))
     nil))
+
+(defn dfs [adj sources]
+  "Performs a lazy depth first traversal of the directed graph determined by
+  the list 'sources' of source nodes and the adjacency function 'adj'."
+  (traversal adj #{} (into '() sources)))
+
+(defn bfs [adj sources]
+  "Performs a lazy breadth first traversal of the directed graph determined by
+  the list 'sources' of source nodes and the adjacency function 'adj'."
+  (traversal adj #{} (into clojure.lang.PersistentQueue/EMPTY sources)))
 
 
 ;; Lazy sequence experiments.
