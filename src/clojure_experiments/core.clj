@@ -118,10 +118,29 @@
 
 ;; Generic graph traversal.
 
+(defprotocol IBag
+  (push [bag val])
+  (head [bag])
+  (tail [bag]))
+
+(extend-protocol IBag
+  clojure.lang.PersistentList
+  (push [bag val] (conj bag val))
+  (head [bag] (first bag))
+  (tail [bag] (rest bag))
+  clojure.lang.PersistentList$EmptyList
+  (push [bag val] (conj bag val))
+  (head [bag] nil)
+  (tail [bag] bag)
+  clojure.lang.PersistentQueue
+  (push [bag val] (conj bag val))
+  (head [bag] (first bag))
+  (tail [bag] (pop bag)))
+
 (defn traversal [adj seen todo]
-  (if-let [node (first todo)]
+  (if-let [node (head todo)]
     (let [neighbors (adj node)
-          todo (into (pop todo) (filter (complement seen) neighbors))
+          todo (reduce push (tail todo) (filter (complement seen) neighbors))
           seen (into (conj seen node) neighbors)]
       (lazy-seq (cons node (traversal adj seen todo))))
     nil))
