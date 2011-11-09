@@ -118,6 +118,14 @@
   (traversal adj #{} (into clojure.lang.PersistentQueue/EMPTY sources)
              conj first pop))
 
+(defn by-edges [adj] (fn [[u v]] (map vector (repeat v) (adj v))))
+
+(defn dfs-by-edges [adj & sources]
+  (apply dfs (cons (by-edges adj) (map vector (repeat nil) sources))))
+
+(defn bfs-by-edges [adj & sources]
+  (apply bfs (cons (by-edges adj) (map vector (repeat nil) sources))))
+
 
 ;; Lazy sequence experiments.
 
