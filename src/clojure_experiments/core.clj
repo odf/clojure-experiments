@@ -42,8 +42,8 @@
        true))
 
 (defn edges [G]
-  (mapcat (fn [[v adj]] (map vector (repeat v) adj))
-          (succ G)))
+  (into #{} (mapcat (fn [[v adj]] (map vector (repeat v) adj))
+                    (succ G))))
 
 (defn adj [G v]
   "The successors of a vertex followed by the predecessors"
