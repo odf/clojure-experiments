@@ -6,9 +6,7 @@
 (defn filter-set [f s] (reduce disj s (filter #(not (f %)) s)))
 
 (defn map-values [f m]
-  (reduce (fn [m [k v]] (let [fv (f v)]
-                          (cond (= v fv) m true (assoc m k fv))))
-          m m))
+  (reduce (fn [m [k v]] (let [fv (f v)] (if (= v fv) m (assoc m k fv)))) m m))
 
 
 ;; An implementation of directed graphs as a persistent data structure.
@@ -34,7 +32,8 @@
 
 (defn internal? [G v] (not (or (empty? ((succ G) v)) (empty? ((pred G) v)))))
 
-(defn isolated? [G v] (and (vertex? G v) (empty? ((pred G) v)) (empty? ((succ G) v))))
+(defn isolated? [G v]
+  (and (vertex? G v) (empty? ((pred G) v)) (empty? ((succ G) v))))
 
 (defn edge? [G v w]
   (and (vertex? G v)
@@ -65,7 +64,8 @@
     (reduce
      (fn [G v]
        (if (vertex? G v)
-        (let [purge-v-from-map (partial map-values (partial filter-set #(not= % v)))]
+         (let [purge-v-from-map (partial map-values
+                                         (partial filter-set #(not= % v)))]
           (Graph. (disj (vertices G) v)
                   (dissoc (purge-v-from-map (pred G)) v)
                   (dissoc (purge-v-from-map (succ G)) v)))
@@ -98,45 +98,35 @@
 (defn graph [& vs] (apply with-edges (cons (Graph. #{} {} {}) vs)))
 
 
-;; A generic, eager depth-first-search implementation.
-
-(defn dfs-visit [adj collected [u, v]]
-  (let [{:keys [order parent]} collected]
-    (if (parent v)
-      collected
-      (let [edges
-            (map vector (repeat v) (adj v))
-            out
-            (reduce (partial dfs-visit adj) (assoc-in collected [:parent v] u) edges)]
-        (assoc out :order (cons v (:order out)))))))
-
-(defn dfs [adj & sources]
-  "Performs a depth first traversal of the directed graph determined by the
-  list 'sources' of source nodes and the adjacency function 'adj'."
-  (reduce (partial dfs-visit adj) {:order nil :parent {}} (map vector sources sources)))
-
-
 ;; Generic graph traversal.
 
-(defn traversal [adj seen todo]
-  (if (empty? todo)
-    nil
-    (let [node (first todo)
-          todo (pop todo)
-          seen (conj seen node)
-          [seen todo] (reduce (fn [[seen todo] v]
-                                (if (seen v)
-                                  [seen todo]
-                                  [(conj seen v) (conj todo v)]))
-                       [seen todo]
-                       (adj node))]
-      (lazy-seq (cons node (traversal adj seen todo))))))
+(defn traversal [adj seen todo push head tail]
+  (when-let [node (head todo)]
+    (let [neighbors (adj node)
+          todo (reduce push (tail todo) (filter (complement seen) neighbors))
+          seen (into (conj seen node) neighbors)]
+      (lazy-seq (cons node (traversal adj seen todo push head tail))))))
+
+(defn dfs [adj & sources]
+  "Performs a lazy depth first traversal of the directed graph determined by
+  the list 'sources' of source nodes and the adjacency function 'adj'."
+  (traversal adj #{} (into '() sources) conj first rest))
+
+(defn bfs [adj & sources]
+  "Performs a lazy breadth first traversal of the directed graph determined by
+  the list 'sources' of source nodes and the adjacency function 'adj'."
+  (traversal adj #{} (into clojure.lang.PersistentQueue/EMPTY sources)
+             conj first pop))
+
+(defn by-edges [method adj & sources]
+  (apply method (cons (fn [[u v]] (map vector (repeat v) (adj v)))
+                      (map vector (repeat nil) sources))))
 
 
 ;; Lazy sequence experiments.
 
 (defn tails [s]
-  "The sequence of sequences starting at each position in the given sequence 's'."
+  "The sequence of sequences starting at each position in the given sequence."
   (lazy-seq (when-let [s (seq s)]
               (cons s (tails (rest s))))))
 
